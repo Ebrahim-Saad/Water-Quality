@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Quality Prediction</title>
+    <style>
+        :root {
+            --primary-color: #00a1e4;
+            --secondary-color: #003566;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.8s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            color: var(--secondary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .form-group {
+            flex: 1 0 33%;
+            padding: 0 15px;
+            margin-bottom: 30px; /* Increased from 20px to add more vertical spacing */
+            opacity: 0;
+            transform: translateX(-10px);
+            animation: slideIn 0.4s ease forwards;
+        }
+        
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            /* Removing negative margin that was causing inputs to overlap */
+            margin: 0;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 161, 228, 0.2);
+        }
+        
+        .model-selection {
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .models-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+        }
+        
+        .model-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .model-option {
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .model-option.selected {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 30px;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            opacity: 0;
+            transform: scale(0.95);
+            height: 0;
+            overflow: hidden;
+            transition: all 0.5s;
+        }
+        
+        .result.show {
+            opacity: 1;
+            transform: scale(1);
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .result.potable {
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 2px solid var(--success-color);
+            color: var(--success-color);
+        }
+        
+        .result.not-potable {
+            background-color: rgba(220, 53, 69, 0.2);
+            border: 2px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 161, 228, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Animation delay for staggered form fields */
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(4) { animation-delay: 0.4s; }
+        .form-group:nth-child(5) { animation-delay: 0.5s; }
+        .form-group:nth-child(6) { animation-delay: 0.6s; }
+        .form-group:nth-child(7) { animation-delay: 0.7s; }
+        .form-group:nth-child(8) { animation-delay: 0.8s; }
+        .form-group:nth-child(9) { animation-delay: 0.9s; }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .form-group {
+                flex: 1 0 50%;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .form-group {
+                flex: 1 0 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Water Quality Prediction</h1>
+        
+        <form id="predictionForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="ph">pH</label>
+                    <input type="number" step="0.01" class="form-control" id="ph" required placeholder="e.g., 7.0">
+                </div>
+                <div class="form-group">
+                    <label for="Hardness">Hardness</label>
+                    <input type="number" step="0.01" class="form-control" id="Hardness" required placeholder="e.g., 200.0">
+                </div>
+                <div class="form-group">
+                    <label for="Solids">Solids</label>
+                    <input type="number" step="0.01" class="form-control" id="Solids" required placeholder="e.g., 20000.0">
+                </div>
+                <div class="form-group">
+                    <label for="Chloramines">Chloramines</label>
+                    <input type="number" step="0.01" class="form-control" id="Chloramines" required placeholder="e.g., 7.0">
+                </div>
+                <div class="form-group">
+                    <label for="Sulfate">Sulfate</label>
+                    <input type="number" step="0.01" class="form-control" id="Sulfate" required placeholder="e.g., 360.0">
+                </div>
+                <div class="form-group">
+                    <label for="Conductivity">Conductivity</label>
+                    <input type="number" step="0.01" class="form-control" id="Conductivity" required placeholder="e.g., 500.0">
+                </div>
+                <div class="form-group">
+                    <label for="Organic_carbon">Organic Carbon</label>
+                    <input type="number" step="0.01" class="form-control" id="Organic_carbon" required placeholder="e.g., 14.0">
+                </div>
+                <div class="form-group">
+                    <label for="Trihalomethanes">Trihalomethanes</label>
+                    <input type="number" step="0.01" class="form-control" id="Trihalomethanes" required placeholder="e.g., 80.0">
+                </div>
+                <div class="form-group">
+                    <label for="Turbidity">Turbidity</label>
+                    <input type="number" step="0.01" class="form-control" id="Turbidity" required placeholder="e.g., 4.0">
+                </div>
+            </div>
+            
+            <div class="model-selection">
+                <h3 class="models-title">Select Prediction Model</h3>
+                <div class="model-options">
+                    <div class="model-option" data-model="rf">Random Forest</div>
+                    <div class="model-option" data-model="dt">Decision Tree</div>
+                    <div class="model-option" data-model="knn">KNN</div>
+                    <div class="model-option" data-model="xgb">XGBoost</div>
+                    <div class="model-option" data-model="lr">Logistic Regression</div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">Predict Water Quality</button>
+        </form>
+        
+        <div class="loader">
+            <div class="spinner"></div>
+            <p>Analyzing water quality...</p>
+        </div>
+        
+        <div class="result" id="resultContainer"></div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Model selection
+            const modelOptions = document.querySelectorAll('.model-option');
+            let selectedModel = 'rf'; // Default selection
+            
+            modelOptions.forEach(option => {
+                if (option.dataset.model === selectedModel) {
+                    option.classList.add('selected');
+                }
+                
+                option.addEventListener('click', function() {
+                    modelOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedModel = this.dataset.model;
+                });
+            });
+            
+            // Form submission
+            const form = document.getElementById('predictionForm');
+            const loader = document.querySelector('.loader');
+            const resultContainer = document.getElementById('resultContainer');
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Clear previous results
+                resultContainer.className = 'result';
+                resultContainer.textContent = '';
+                
+                // Show loader
+                loader.style.display = 'block';
+                
+                // Create data object
+                const data = {
+                    ph: parseFloat(document.getElementById('ph').value),
+                    Hardness: parseFloat(document.getElementById('Hardness').value),
+                    Solids: parseFloat(document.getElementById('Solids').value),
+                    Chloramines: parseFloat(document.getElementById('Chloramines').value),
+                    Sulfate: parseFloat(document.getElementById('Sulfate').value),
+                    Conductivity: parseFloat(document.getElementById('Conductivity').value),
+                    Organic_carbon: parseFloat(document.getElementById('Organic_carbon').value),
+                    Trihalomethanes: parseFloat(document.getElementById('Trihalomethanes').value),
+                    Turbidity: parseFloat(document.getElementById('Turbidity').value)
+                };
+                
+                try {
+                    // Updated to use POST method instead of GET
+                    const response = await fetch(`http:/0.0.0.0:5000/predict/${selectedModel}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    // Hide loader
+                    loader.style.display = 'none';
+                    
+                    // Display result
+                    if (result.error) {
+                        resultContainer.className = 'result show not-potable';
+                        resultContainer.textContent = `Error: ${result.error}`;
+                    } else {
+                        resultContainer.className = `result show ${result.label === 'Potable' ? 'potable' : 'not-potable'}`;
+                        resultContainer.textContent = `Result: Water is ${result.label}`;
+                    }
+                } catch (error) {
+                    // Hide loader
+                    loader.style.display = 'none';
+                    
+                    // Display error
+                    resultContainer.className = 'result show not-potable';
+                    resultContainer.textContent = `Error: ${error.message}`;
+                }
+            });
+            
+            // Add animation effects to inputs
+            const inputs = document.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.style.transition = 'transform 0.3s';
+                    this.parentElement.style.transform = 'translateY(-5px)';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.parentElement.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
